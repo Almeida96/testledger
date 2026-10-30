@@ -1,0 +1,9 @@
+{
+  "name": "testledger-protocol-tests",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": { "test:mcp": "node --test test/mcp.test.mjs", "demo": "node examples/mcp-demo.mjs" },
+  "devDependencies": { "@modelcontextprotocol/sdk": "1.32.2" },
+  "engines": { "node": ">=24" }
+}

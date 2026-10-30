@@ -1,0 +1,64 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Build, test, and package
+        shell: bash
+        run: ./gradlew test installDist distZip --console=plain
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:mcp
+      - run: pnpm demo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-${{ matrix.os }}
+          path: |
+            build/reports/tests
+            build/reports/jacoco
+            build/demo/report.md
+            build/demo/evidence.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distribution-${{ matrix.os }}
+          path: build/distributions/testledger-0.1.0.zip
+  release:
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release TestLedger 0.1.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: distribution-ubuntu-latest
+          path: release
+      - name: Publish the tested distribution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd release
+          sha256sum testledger-0.1.0.zip > SHA256SUMS.txt
+          gh release create v0.1.0 testledger-0.1.0.zip SHA256SUMS.txt --target "$GITHUB_SHA" --title "TestLedger 0.1.0" --notes-file ../docs/releases/0.1.0.md

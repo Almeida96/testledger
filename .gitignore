@@ -1,0 +1,11 @@
+.gradle/
+.kotlin/
+build/
+.testledger/
+*.db
+*.db-shm
+*.db-wal
+.idea/
+*.iml
+.env
+node_modules/

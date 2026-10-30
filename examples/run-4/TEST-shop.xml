@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="shop" tests="8">
+  <properties><property name="password" value="example-do-not-store"/></properties>
+  <testcase classname="shop.PaymentTest" name="rejectsDuplicate" time="0.12"><failure type="AssertionError" message="expected 1 order, got 2">at shop.OrderValidator.total(OrderValidator.kt:33)</failure></testcase>
+  <testcase classname="shop.CheckoutTest" name="declinesInvalidTotal" time="0.04"><failure type="AssertionError" message="expected rejected total">at shop.OrderValidator.total(OrderValidator.kt:41)</failure></testcase>
+  <testcase classname="shop.DatabaseTest" name="opensPool" time="1.2"><error type="java.sql.SQLTimeoutException" message="pool wait exceeded">at shop.Database.connect(Database.kt:24)
+Authorization: Bearer example-private-value</error></testcase>
+  <testcase classname="shop.NotificationTest" name="deliversReceipt" time="0.2"/>
+  <testcase classname="shop.InventoryTest" name="reservesStock"><skipped/></testcase>
+  <testcase classname="shop.SchemaTest" name="readsNewVersion"><failure type="AssertionError" message="unsupported version">at shop.Schema.parse(Schema.kt:9)</failure></testcase>
+  <testcase classname="shop.ShippingTest" name="validatesAddress"><failure type="AssertionError" message="address not normalized">at shop.Shipping.normalize(Shipping.kt:27)</failure></testcase>
+  <testcase classname="shop.RetryTest" name="retriesDelivery" time="0.3"><flakyFailure type="TimeoutException" message="first attempt timed out"><stackTrace>at shop.Delivery.send(Delivery.kt:10)</stackTrace></flakyFailure></testcase>
+  <system-out>Example stdout is deliberately not retained.</system-out>
+</testsuite>

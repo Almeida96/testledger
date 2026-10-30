@@ -1,0 +1,234 @@
+{
+  "transport": "MCP stdio, Kotlin server / TypeScript client",
+  "comparison": {
+    "base": "run-3",
+    "head": "run-4",
+    "counts": {
+      "failed_after_skip": 1,
+      "new_failure": 1,
+      "not_observed": 1,
+      "now_skipped": 1,
+      "persistent_failure": 1,
+      "recovered": 1,
+      "regression": 2
+    },
+    "changes": [
+      {
+        "kind": "failed_after_skip",
+        "testId": "f594a395ba0c9767a3ca46b2",
+        "name": "validatesAddress",
+        "before": "SKIPPED",
+        "after": "FAILURE",
+        "evidence": [
+          "testledger://runs/run-3/tests/f594a395ba0c9767a3ca46b2",
+          "testledger://runs/run-4/tests/f594a395ba0c9767a3ca46b2"
+        ]
+      },
+      {
+        "kind": "new_failure",
+        "testId": "35aa637db98b16a649a89b88",
+        "name": "readsNewVersion",
+        "before": null,
+        "after": "FAILURE",
+        "evidence": [
+          "testledger://runs/run-4/tests/35aa637db98b16a649a89b88"
+        ]
+      },
+      {
+        "kind": "not_observed",
+        "testId": "3bf924f2da0bb0bb8875576b",
+        "name": "exportsLegacyOrder",
+        "before": "FAILURE",
+        "after": null,
+        "evidence": [
+          "testledger://runs/run-3/tests/3bf924f2da0bb0bb8875576b"
+        ]
+      },
+      {
+        "kind": "now_skipped",
+        "testId": "747cbfeae3e45c045799e0d9",
+        "name": "reservesStock",
+        "before": "FAILURE",
+        "after": "SKIPPED",
+        "evidence": [
+          "testledger://runs/run-3/tests/747cbfeae3e45c045799e0d9",
+          "testledger://runs/run-4/tests/747cbfeae3e45c045799e0d9"
+        ]
+      },
+      {
+        "kind": "persistent_failure",
+        "testId": "9197f5f96476b40cccd8dfb4",
+        "name": "opensPool",
+        "before": "ERROR",
+        "after": "ERROR",
+        "evidence": [
+          "testledger://runs/run-3/tests/9197f5f96476b40cccd8dfb4",
+          "testledger://runs/run-4/tests/9197f5f96476b40cccd8dfb4"
+        ]
+      },
+      {
+        "kind": "recovered",
+        "testId": "957d0f2b8637aea43ffcce61",
+        "name": "deliversReceipt",
+        "before": "FAILURE",
+        "after": "PASSED",
+        "evidence": [
+          "testledger://runs/run-3/tests/957d0f2b8637aea43ffcce61",
+          "testledger://runs/run-4/tests/957d0f2b8637aea43ffcce61"
+        ]
+      },
+      {
+        "kind": "regression",
+        "testId": "12e1bca22e5077c7f7be1fb7",
+        "name": "rejectsDuplicate",
+        "before": "PASSED",
+        "after": "FAILURE",
+        "evidence": [
+          "testledger://runs/run-3/tests/12e1bca22e5077c7f7be1fb7",
+          "testledger://runs/run-4/tests/12e1bca22e5077c7f7be1fb7"
+        ]
+      },
+      {
+        "kind": "regression",
+        "testId": "f4c5b5cd676467043fc562b3",
+        "name": "declinesInvalidTotal",
+        "before": "PASSED",
+        "after": "FAILURE",
+        "evidence": [
+          "testledger://runs/run-3/tests/f4c5b5cd676467043fc562b3",
+          "testledger://runs/run-4/tests/f4c5b5cd676467043fc562b3"
+        ]
+      }
+    ],
+    "nextOffset": null
+  },
+  "groups": {
+    "runId": "run-4",
+    "groups": [
+      {
+        "fingerprint": "6be6248adb3440137e285398",
+        "failureType": "AssertionError",
+        "count": 2,
+        "examples": [
+          {
+            "testId": "12e1bca22e5077c7f7be1fb7",
+            "className": "shop.PaymentTest",
+            "name": "rejectsDuplicate",
+            "outcome": "FAILURE",
+            "evidence": "testledger://runs/run-4/tests/12e1bca22e5077c7f7be1fb7"
+          },
+          {
+            "testId": "f4c5b5cd676467043fc562b3",
+            "className": "shop.CheckoutTest",
+            "name": "declinesInvalidTotal",
+            "outcome": "FAILURE",
+            "evidence": "testledger://runs/run-4/tests/f4c5b5cd676467043fc562b3"
+          }
+        ]
+      },
+      {
+        "fingerprint": "34fd0e7517480860eb98d1dc",
+        "failureType": "AssertionError",
+        "count": 1,
+        "examples": [
+          {
+            "testId": "f594a395ba0c9767a3ca46b2",
+            "className": "shop.ShippingTest",
+            "name": "validatesAddress",
+            "outcome": "FAILURE",
+            "evidence": "testledger://runs/run-4/tests/f594a395ba0c9767a3ca46b2"
+          }
+        ]
+      },
+      {
+        "fingerprint": "4f72447c6c98fc08c3d4a298",
+        "failureType": "java.sql.SQLTimeoutException",
+        "count": 1,
+        "examples": [
+          {
+            "testId": "9197f5f96476b40cccd8dfb4",
+            "className": "shop.DatabaseTest",
+            "name": "opensPool",
+            "outcome": "ERROR",
+            "evidence": "testledger://runs/run-4/tests/9197f5f96476b40cccd8dfb4"
+          }
+        ]
+      },
+      {
+        "fingerprint": "e4de035ded86da2125a3edbb",
+        "failureType": "AssertionError",
+        "count": 1,
+        "examples": [
+          {
+            "testId": "35aa637db98b16a649a89b88",
+            "className": "shop.SchemaTest",
+            "name": "readsNewVersion",
+            "outcome": "FAILURE",
+            "evidence": "testledger://runs/run-4/tests/35aa637db98b16a649a89b88"
+          }
+        ]
+      }
+    ],
+    "totalGroups": 4,
+    "nextOffset": null
+  },
+  "history": {
+    "testId": "12e1bca22e5077c7f7be1fb7",
+    "scope": "shop / main",
+    "observed": 4,
+    "missing": 0,
+    "transitions": 3,
+    "intermittent": true,
+    "note": "Two or more adjacent pass/fail transitions indicate an intermittent outcome in this window. They do not establish flakiness or a root cause; commits and environments may differ.",
+    "history": [
+      {
+        "run": {
+          "id": "run-1",
+          "project": "shop",
+          "branch": "main",
+          "commit": "sample-1",
+          "at": "2026-10-30T12:01:00.000000000Z"
+        },
+        "outcome": "PASSED",
+        "retryFailures": 0,
+        "evidence": "testledger://runs/run-1/tests/12e1bca22e5077c7f7be1fb7"
+      },
+      {
+        "run": {
+          "id": "run-2",
+          "project": "shop",
+          "branch": "main",
+          "commit": "sample-2",
+          "at": "2026-10-30T12:02:00.000000000Z"
+        },
+        "outcome": "FAILURE",
+        "retryFailures": 0,
+        "evidence": "testledger://runs/run-2/tests/12e1bca22e5077c7f7be1fb7"
+      },
+      {
+        "run": {
+          "id": "run-3",
+          "project": "shop",
+          "branch": "main",
+          "commit": "sample-3",
+          "at": "2026-10-30T12:03:00.000000000Z"
+        },
+        "outcome": "PASSED",
+        "retryFailures": 0,
+        "evidence": "testledger://runs/run-3/tests/12e1bca22e5077c7f7be1fb7"
+      },
+      {
+        "run": {
+          "id": "run-4",
+          "project": "shop",
+          "branch": "main",
+          "commit": "sample-4",
+          "at": "2026-10-30T12:04:00.000000000Z"
+        },
+        "outcome": "FAILURE",
+        "retryFailures": 0,
+        "evidence": "testledger://runs/run-4/tests/12e1bca22e5077c7f7be1fb7"
+      }
+    ]
+  }
+}

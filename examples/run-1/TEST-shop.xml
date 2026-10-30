@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="shop" tests="7">
+  <testcase classname="shop.PaymentTest" name="rejectsDuplicate" time="0.12"/>
+  <testcase classname="shop.CheckoutTest" name="declinesInvalidTotal" time="0.04"/>
+  <testcase classname="shop.DatabaseTest" name="opensPool" time="1.2"><error type="java.sql.SQLTimeoutException" message="pool wait exceeded">at shop.Database.connect(Database.kt:24)</error></testcase>
+  <testcase classname="shop.NotificationTest" name="deliversReceipt" time="0.2"><failure type="AssertionError" message="expected receipt">at shop.Notification.deliver(Notification.kt:18)</failure></testcase>
+  <testcase classname="shop.LegacyTest" name="exportsLegacyOrder" time="0.1"><failure type="AssertionError" message="unsupported schema">at shop.Legacy.export(Legacy.kt:40)</failure></testcase>
+  <testcase classname="shop.InventoryTest" name="reservesStock" time="0.1"/>
+  <testcase classname="shop.ShippingTest" name="validatesAddress"><skipped/></testcase>
+</testsuite>
