@@ -227,4 +227,4 @@ Dependencies are pinned and Gradle dependency locks are committed. The Gradle
 wrapper distribution has a SHA-256 checksum. See [architecture](docs/architecture.md)
 for storage, grouping, and consistency details.
 
-MIT license.
+[Contribution guide](CONTRIBUTING.md). MIT license.
