@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.almeida96"
-version = "0.1.0"
+version = "0.2.0"
 
 repositories { mavenCentral() }
 
@@ -28,7 +28,7 @@ tasks.jacocoTestReport { reports { xml.required = true; html.required = true } }
 distributions {
     main {
         contents {
-            from("README.md", "LICENSE", "CHANGELOG.md")
+            from("README.md", "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md")
             from("examples") { into("examples") }
             from("docs") { into("docs") }
             from("test") { into("test") }

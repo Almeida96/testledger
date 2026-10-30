@@ -18,6 +18,10 @@ export async function seed(db) {
   for (let n = 1; n <= 4; n++) await cli('import', '--reports', resolve(project, `examples/run-${n}`), '--db', db,
     '--id', `run-${n}`, '--project', 'shop', '--branch', 'main', '--commit', `sample-${n}`, '--at', `2026-10-30T12:0${n}:00Z`);
 }
+export async function seedTimings(db) {
+  for (let n = 1; n <= 5; n++) await cli('import', '--reports', resolve(project, `examples/timings/run-${n}`), '--db', db,
+    '--id', `timing-${n}`, '--project', 'catalog', '--branch', 'main', '--commit', `sample-timing-${n}`, '--at', `2026-10-30T13:0${n}:00Z`);
+}
 export async function connect(db) {
   const client = new Client({ name: 'testledger-interop', version: '0.1.0' });
   const transport = new StdioClientTransport({ command: java, args: [...launch, 'serve', '--db', db], stderr: 'pipe' });

@@ -28,3 +28,8 @@ configuration, provided by the user through a separate authorized tool.
 
 The generated Markdown report is deterministic. It can be attached to a PR, but
 TestLedger does not post comments or open issues automatically.
+
+The same command imports five timing fixtures and calls `performance_regressions`.
+It writes the result to `build/demo/timings.json`. See
+[timing analysis](timing-analysis.md#reproduce-the-fixture) for expected values
+and the distinction between a measured increase and missing history.

@@ -9,7 +9,7 @@ import java.io.PrintStream
 import kotlin.system.exitProcess
 
 private val usage = """
-    TestLedger 0.1.0 — test-run evidence for MCP agents
+    TestLedger $VERSION — test-run evidence for MCP agents
 
     import   --reports DIR --id ID --project NAME --branch NAME --commit REF --at ISO_INSTANT
     runs     --project NAME --branch NAME [--offset 0] [--limit 20]
@@ -19,6 +19,9 @@ private val usage = """
     history  --project NAME --branch NAME --test ID [--window 20]
     test     --run ID --test ID
     report   --base ID --head ID
+    timings  --run ID [--window 10] [--min-samples 3] [--min-increase-ms 100]
+             [--min-increase-percent 50] [--offset 0] [--limit 20] [--snapshot HASH]
+    timing-check  (same options as timings; exit 0 clear, 2 regressions, 3 insufficient data)
     serve
 
     Every command accepts --db PATH (default: .testledger/ledger.db).
@@ -30,19 +33,21 @@ private val usage = """
 fun main(args: Array<String>) {
     System.setOut(PrintStream(FileOutputStream(FileDescriptor.out), true, Charsets.UTF_8))
     System.setErr(PrintStream(FileOutputStream(FileDescriptor.err), true, Charsets.UTF_8))
-    try { execute(args) }
+    try { exitProcess(execute(args)) }
     catch (e: Exception) { System.err.println(Redactor.clean(e.message ?: "Command failed")); exitProcess(1) }
 }
 
-fun execute(args: Array<String>) {
-    if (args.isEmpty() || args.contentEquals(arrayOf("--help"))) { println(usage); return }
-    if (args.contentEquals(arrayOf("--version"))) { println("0.1.0"); return }
+fun execute(args: Array<String>): Int {
+    if (args.isEmpty() || args.contentEquals(arrayOf("--help"))) { println(usage); return 0 }
+    if (args.contentEquals(arrayOf("--version"))) { println(VERSION); return 0 }
+    val timingOptions = setOf("run", "window", "min-samples", "min-increase-ms", "min-increase-percent", "offset", "limit", "snapshot")
     val allowed = mapOf(
         "import" to setOf("reports", "id", "project", "branch", "commit", "at"),
         "runs" to setOf("project", "branch", "offset", "limit"), "summary" to setOf("run"),
         "failures" to setOf("run", "offset", "limit"), "compare" to setOf("base", "head", "offset", "limit"),
         "history" to setOf("project", "branch", "test", "window"), "test" to setOf("run", "test"),
         "report" to setOf("base", "head"), "serve" to emptySet(),
+        "timings" to timingOptions, "timing-check" to timingOptions,
     )
     val command = args.first(); val options = allowed[command] ?: error("Unknown command: $command")
     require(args.size % 2 == 1) { "Options must use --name value" }
@@ -59,9 +64,9 @@ fun execute(args: Array<String>) {
         val meta = RunMeta(required("id"), required("project"), required("branch"), required("commit"), required("at"))
         meta.validate()
         val batch = JunitReader().read(Path.of(required("reports")))
-        Ledger(db, true).use { println(json.encodeToString(it.import(meta, batch))) }; return
+        Ledger(db, true).use { println(json.encodeToString(it.import(meta, batch))) }; return 0
     }
-    Ledger(db).use { ledger ->
+    return Ledger(db).use { ledger ->
         when (command) {
             "serve" -> runBlocking { serve(ledger) }
             "runs" -> println(json.encodeToString(ledger.runs(required("project"), required("branch"), int("offset", 0), int("limit", 20))))
@@ -71,7 +76,18 @@ fun execute(args: Array<String>) {
             "history" -> println(json.encodeToString(ledger.history(required("project"), required("branch"), required("test"), int("window", 20))))
             "test" -> println(json.encodeToString(ledger.test(required("run"), required("test"))))
             "report" -> println(markdownReport(ledger, required("base"), required("head")))
+            "timings", "timing-check" -> {
+                val policy = TimingPolicy(int("window", 10), int("min-samples", 3), int("min-increase-ms", 100), int("min-increase-percent", 50))
+                val result = ledger.timings(required("run"), policy, int("offset", 0), int("limit", 20), values["snapshot"])
+                println(json.encodeToString(result))
+                if (command == "timing-check") return@use when (result.status) {
+                    TimingStatus.CLEAR -> 0
+                    TimingStatus.REGRESSIONS -> 2
+                    TimingStatus.INSUFFICIENT_DATA -> 3
+                }
+            }
         }
+        0
     }
 }
 

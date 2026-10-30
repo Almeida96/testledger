@@ -25,7 +25,7 @@ immutable import across the whole ledger, including its project and branch.
 SQLite uses foreign keys, WAL, and a five-second busy timeout. A second process
 can import a run while an MCP process reads existing runs. Query methods serialize
 access to their JDBC connection. Existing runs never change, so evidence IDs stay
-valid after further imports. There is no retention or delete command in 0.1.0.
+valid after further imports. There is no retention or delete command in 0.2.0.
 
 Timestamps are parsed as instants and stored with a fixed nine-digit fractional
 part in UTC. This makes SQL ordering consistent for whole seconds, fractions, and
@@ -51,6 +51,32 @@ the message with numeric values and UUID-like strings normalized. This groups
 similar symptoms and can merge unrelated failures. A fingerprint is never a
 claim of shared root cause. Each group includes example observations for review.
 
+## Timing queries
+
+The timing query selects up to 50 strictly older runs in the head's project and
+branch. It reads outcome, retry count, and duration from schema version 1; no
+migration or derived timing table is needed. The XML parser represents an absent
+duration as zero, so both zero and missing durations are excluded.
+
+SQLite extracts the duration scalar from each eligible observation. The query
+does not deserialize historical stack traces. Each eligible head test has a
+bounded array with one duration slot per selected run; missing samples use zero.
+The working set is proportional to head tests × window, plus one run's readings.
+Names and complete evidence payloads are loaded only for the returned page.
+
+Medians and threshold comparisons use decimal arithmetic. Both the absolute and
+relative threshold are inclusive; the head must still be strictly slower. Results
+are sorted by absolute increase, then test ID. Counts and gate status cover every
+eligible head test, regardless of pagination.
+
+A snapshot hash covers the head metadata, policy, and ordered baseline metadata.
+Immutable runs make those IDs sufficient within one ledger. A caller may pass
+that hash with the next offset; a backfill that changes the selected baseline
+then fails explicitly. Ordinary newer imports do not affect an older head's
+analysis. Selection happens once per query, so concurrent imports cannot mix two
+baselines within a response. See [timing analysis](timing-analysis.md) for the
+coverage and exit-code contract.
+
 ## Agent interface
 
 Tools validate argument names, types, identifiers, pagination, and query bounds.
@@ -64,7 +90,7 @@ surface and reusable investigation prompt. A client may send returned evidence
 to its chosen model. No model response was used to validate this release.
 
 The independent protocol test seeds a real SQLite ledger, launches the packaged
-JVM server, negotiates MCP through the TypeScript SDK, calls all six tools, gets
+JVM server, negotiates MCP through the TypeScript SDK, calls all seven tools, gets
 the prompt, and checks the expected observations. This verifies interoperability
 without assuming that a language model will always choose the right tools.
 
@@ -77,6 +103,9 @@ without assuming that a language model will always choose the right tools.
   their expected outcomes differ.
 - `intermittent` means at least two adjacent pass/fail changes in up to 50 recent
   runs. It is not a probabilistic flakiness score.
+- Timing thresholds compare recorded testcase durations. Runner contention,
+  retries not represented in XML, and environment changes can explain increases.
+  The median reduces sensitivity to outliers but is not a significance test.
 - Parsing, comparison, and failure grouping run in memory within import limits.
   This release targets local project histories, not a multi-tenant analytics service.
 - Redaction is a best-effort pattern filter. Unknown secrets and personal data can

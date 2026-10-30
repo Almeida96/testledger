@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="catalog">
+  <testcase classname="CatalogTest" name="searchesCatalog" time="1.1"/>
+  <testcase classname="CatalogTest" name="readsCache" time="0.5"/>
+  <testcase classname="CatalogTest" name="retriesRequest" time="2">
+    <flakyFailure type="TimeoutException" message="Synthetic retry before a passing attempt"/>
+  </testcase>
+  <testcase classname="CatalogTest" name="withoutDuration"/>
+</testsuite>

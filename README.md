@@ -4,9 +4,13 @@
 
 Test-run history and failure evidence for AI agents, written in Kotlin.
 
-TestLedger imports JUnit XML into a local SQLite database and exposes six read-only
+TestLedger imports JUnit XML into a local SQLite database and exposes seven read-only
 MCP tools. An agent can compare builds, inspect grouped failures, check a test's
 recent history, and cite the exact observation behind a conclusion.
+
+It also finds tests that got slower against a median of earlier runs. The same
+analysis is available as an MCP tool and a CI command with separate exit codes
+for regressions and insufficient history.
 
 It handles a common triage mistake: a failing test that disappears from the next
 run is **not** marked as recovered. Skipped tests, new failures, regressions, and
@@ -18,6 +22,8 @@ confirmed passes have separate categories.
 - Stores immutable runs with project, branch, commit, and timestamp metadata.
 - Groups failures by exception type and stack location, with evidence for each group.
 - Compares runs and tracks adjacent pass/fail transitions within one branch.
+- Detects duration increases against a branch-specific median, with configurable
+  thresholds, sample counts, and citations for each measurement.
 - Exposes MCP tools and a `triage-tests` prompt for an agent's investigation.
 - Produces a Markdown comparison report for a pull request or incident record.
 
@@ -28,17 +34,17 @@ included demo exercises the real protocol without making a model call.
 ## Install
 
 Requires **Java 21 or later**. Download and extract
-[testledger-0.1.0.zip](https://github.com/Almeida96/testledger/releases/download/v0.1.0/testledger-0.1.0.zip).
+[testledger-0.2.0.zip](https://github.com/Almeida96/testledger/releases/download/v0.2.0/testledger-0.2.0.zip).
 The archive includes dependencies and launchers for Windows and Unix systems.
 
 ```sh
-./testledger-0.1.0/bin/testledger --help
+./testledger-0.2.0/bin/testledger --help
 ```
 
 PowerShell:
 
 ```powershell
-.\testledger-0.1.0\bin\testledger.bat --help
+.\testledger-0.2.0\bin\testledger.bat --help
 ```
 
 Set `JAVA_HOME` to your JDK directory, or make `java` available on `PATH`.
@@ -75,11 +81,17 @@ testledger compare --base build-141 --head build-142
 testledger history --project checkout --branch main --test TEST_ID --window 20
 testledger test --run build-142 --test TEST_ID
 testledger report --base build-141 --head build-142 > triage.md
+testledger timings --run build-142
+testledger timing-check --run build-142 --min-increase-ms 200 --min-increase-percent 50
 ```
 
 Commands return JSON except `report`, which returns Markdown. Invalid input and
-missing data produce a nonzero exit code. `runs`, `failures`, and `compare` support
+missing data produce exit code 1. `timing-check` also returns 2 for detected timing
+regressions and 3 for insufficient history. `runs`, `failures`, `compare`, and `timings` support
 `--offset` and `--limit`; JSON responses include `nextOffset` when another page exists.
+
+See [timing analysis](docs/timing-analysis.md) for baseline selection, coverage,
+pagination snapshots, and CI usage. Existing 0.1.0 databases work without migration.
 
 ## Connect your agent
 
@@ -93,7 +105,7 @@ Use absolute paths because clients often start tools from a different directory.
       "command": "java",
       "args": [
         "-cp",
-        "/absolute/path/testledger-0.1.0/lib/*",
+        "/absolute/path/testledger-0.2.0/lib/*",
         "io.github.almeida96.testledger.MainKt",
         "serve",
         "--db",
@@ -105,7 +117,7 @@ Use absolute paths because clients often start tools from a different directory.
 ```
 
 On Windows, use forward slashes in JSON paths, such as
-`C:/tools/testledger-0.1.0/lib/*`. The Java launcher expands the classpath wildcard;
+`C:/tools/testledger-0.2.0/lib/*`. The Java launcher expands the classpath wildcard;
 no shell wrapper is needed. Client configuration locations vary.
 
 | Tool | What the agent receives |
@@ -116,12 +128,19 @@ no shell wrapper is needed. Client configuration locations vary.
 | `compare_runs` | Paginated changes between two chronological runs |
 | `test_history` | Recent observations, missing runs, and pass/fail transitions |
 | `test_evidence` | One testcase's failure text, source report, XML line, and retry hints |
+| `performance_regressions` | Slower passed tests, baseline medians, coverage, and cited duration samples |
 
 Select the **`triage-tests`** MCP prompt with a project and branch, or ask your agent:
 
 > Compare the latest two checkout runs on main. Inspect the new failures, check
 > whether they appeared in earlier runs, and cite the evidence. Separate facts
 > from hypotheses and list the next checks you would make.
+
+For a timing investigation:
+
+> Check build-142 for tests that grew by at least 200 ms and 50% against earlier
+> runs on the same branch. Show the baseline, sample counts, and evidence. State
+> how many tests lacked enough history before suggesting what to investigate.
 
 Evidence IDs have the form `testledger://runs/RUN_ID/tests/TEST_ID`. They are
 stable references resolved through `test_evidence` using those two IDs, not HTTP
@@ -218,6 +237,8 @@ pnpm demo
 
 JUnit tests cover parser limits, external-entity rejection, credential redaction,
 retries, immutable imports, branch isolation, pagination, comparisons, and history.
+Timing tests cover median baselines, threshold boundaries, exclusions, coverage,
+backfilled runs, pagination snapshots, and finite extreme durations.
 Protocol tests launch the installed JVM distribution and use the official
 TypeScript MCP client. They also check UTF-8 on Windows and nonzero CLI exits.
 CI runs Java 21 on Linux and Windows. JaCoCo reports are available under

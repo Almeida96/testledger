@@ -135,6 +135,47 @@ class Ledger(path: Path, private val writable: Boolean = false) : AutoCloseable 
             "Two or more adjacent pass/fail transitions indicate an intermittent outcome in this window. They do not establish flakiness or a root cause; commits and environments may differ.", items)
     }
 
+    @Synchronized fun timings(runId: String, policy: TimingPolicy = TimingPolicy(), offset: Int = 0, limit: Int = 20, snapshot: String? = null): TimingPage {
+        policy.validate(); page(offset, limit, 20)
+        val head = summary(runId)
+        // Select runs once. Their immutable observations can then be read without a long transaction.
+        val baseline = query("SELECT meta FROM runs WHERE project=? AND branch=? AND at<? ORDER BY at DESC, id DESC LIMIT ?",
+            head.run.project, head.run.branch, head.run.at, policy.window) { json.decodeFromString<RunMeta>(it.getString(1)) }
+        val selectedSnapshot = sha256("timings-v1\n${json.encodeToString(head.run)}\n${json.encodeToString(policy)}\n${json.encodeToString(baseline)}")
+        require(snapshot == null || snapshot == selectedSnapshot) { "Timing snapshot changed. Restart at offset 0 without a snapshot." }
+        val eligible = timingReadings(runId)
+        val samples = eligible.associate { it.testId to DoubleArray(baseline.size) }
+        baseline.forEachIndexed { index, meta ->
+            timingReadings(meta.id).forEach { row -> samples[row.testId]?.set(index, row.seconds) }
+        }
+        var insufficient = 0
+        val changes = eligible.mapNotNull { row ->
+            val times = samples.getValue(row.testId)
+            if (times.count { it > 0 } < policy.minSamples) { insufficient++; null }
+            else timingChange(row.testId, row.seconds, times, policy)
+        }.sortedWith(compareByDescending<TimingChange> { it.increase }.thenBy { it.testId })
+        val evaluated = eligible.size - insufficient
+        val status = when {
+            changes.isNotEmpty() -> TimingStatus.REGRESSIONS
+            evaluated == 0 || insufficient > 0 -> TimingStatus.INSUFFICIENT_DATA
+            else -> TimingStatus.CLEAR
+        }
+        val rows = changes.drop(offset).take(limit).map { change ->
+            val test = test(runId, change.testId)
+            val evidenceSamples = samples.getValue(change.testId).asSequence().mapIndexedNotNull { index, seconds ->
+                if (seconds > 0) TimingSample(baseline[index].id, seconds, evidence(baseline[index].id, change.testId)) else null
+            }.toList()
+            TimingRegression(change.testId, test.className, test.name, change.headSeconds, change.median.toDouble(),
+                change.increase.toDouble(), evidence(runId, change.testId), evidenceSamples)
+        }
+        return TimingPage(head.run, policy, baseline, selectedSnapshot, status, head.tests, eligible.size, evaluated,
+            insufficient, head.tests - eligible.size, changes.size, rows, if (offset.toLong() + limit < changes.size) offset + limit else null)
+    }
+
+    private fun timingReadings(runId: String): List<TimingReading> = query(
+        "SELECT test_id, json_extract(payload, '$.seconds') FROM observations WHERE run_id=? AND outcome='PASSED' AND retries=0",
+        runId) { TimingReading(it.getString(1), it.getDouble(2)) }.filter { it.seconds.isFinite() && it.seconds > 0 }
+
     private fun run(id: String): RunMeta = query("SELECT meta FROM runs WHERE id=?", id) { json.decodeFromString<RunMeta>(it.getString(1)) }
         .singleOrNull() ?: error("Run not found: $id")
     private fun tests(id: String): List<Observation> = query("SELECT payload FROM observations WHERE run_id=? ORDER BY test_id", id) { json.decodeFromString<Observation>(it.getString(1)) }
