@@ -4,9 +4,9 @@
 
 Test-run history and failure evidence for AI agents, written in Kotlin.
 
-TestLedger imports JUnit XML into a local SQLite database and exposes seven read-only
-MCP tools. An agent can compare builds, inspect grouped failures, check a test's
-recent history, and cite the exact observation behind a conclusion.
+TestLedger imports JUnit XML into a local SQLite database and exposes eight read-only
+MCP tools. An agent can compare builds, inspect grouped failures, discover tests
+with intermittent outcomes, and cite the exact observation behind a conclusion.
 
 It also finds tests that got slower against a median of earlier runs. The same
 analysis is available as an MCP tool and a CI command with separate exit codes
@@ -22,6 +22,8 @@ confirmed passes have separate categories.
 - Stores immutable runs with project, branch, commit, and timestamp metadata.
 - Groups failures by exception type and stack location, with evidence for each group.
 - Compares runs and tracks adjacent pass/fail transitions within one branch.
+- Finds intermittent outcomes and passes after retries across a branch's history,
+  including tests absent from the selected head run.
 - Detects duration increases against a branch-specific median, with configurable
   thresholds, sample counts, and citations for each measurement.
 - Exposes MCP tools and a `triage-tests` prompt for an agent's investigation.
@@ -34,17 +36,17 @@ included demo exercises the real protocol without making a model call.
 ## Install
 
 Requires **Java 21 or later**. Download and extract
-[testledger-0.2.0.zip](https://github.com/Almeida96/testledger/releases/download/v0.2.0/testledger-0.2.0.zip).
+[testledger-0.3.0.zip](https://github.com/Almeida96/testledger/releases/download/v0.3.0/testledger-0.3.0.zip).
 The archive includes dependencies and launchers for Windows and Unix systems.
 
 ```sh
-./testledger-0.2.0/bin/testledger --help
+./testledger-0.3.0/bin/testledger --help
 ```
 
 PowerShell:
 
 ```powershell
-.\testledger-0.2.0\bin\testledger.bat --help
+.\testledger-0.3.0\bin\testledger.bat --help
 ```
 
 Set `JAVA_HOME` to your JDK directory, or make `java` available on `PATH`.
@@ -79,6 +81,7 @@ testledger summary --run build-142
 testledger failures --run build-142
 testledger compare --base build-141 --head build-142
 testledger history --project checkout --branch main --test TEST_ID --window 20
+testledger stability --run build-142 --window 20 --min-transitions 2
 testledger test --run build-142 --test TEST_ID
 testledger report --base build-141 --head build-142 > triage.md
 testledger timings --run build-142
@@ -87,11 +90,14 @@ testledger timing-check --run build-142 --min-increase-ms 200 --min-increase-per
 
 Commands return JSON except `report`, which returns Markdown. Invalid input and
 missing data produce exit code 1. `timing-check` also returns 2 for detected timing
-regressions and 3 for insufficient history. `runs`, `failures`, `compare`, and `timings` support
-`--offset` and `--limit`; JSON responses include `nextOffset` when another page exists.
+regressions and 3 for insufficient history. `runs`, `failures`, `compare`, `timings`,
+and `stability` support `--offset` and `--limit`; JSON responses include `nextOffset`
+when another page exists.
 
 See [timing analysis](docs/timing-analysis.md) for baseline selection, coverage,
-pagination snapshots, and CI usage. Existing 0.1.0 databases work without migration.
+pagination snapshots, and CI usage. The [stability guide](docs/stability.md)
+explains discovery, ranking, and gaps in the evidence. Existing 0.1.0 and 0.2.0
+databases work without migration.
 
 ## Connect your agent
 
@@ -105,7 +111,7 @@ Use absolute paths because clients often start tools from a different directory.
       "command": "java",
       "args": [
         "-cp",
-        "/absolute/path/testledger-0.2.0/lib/*",
+        "/absolute/path/testledger-0.3.0/lib/*",
         "io.github.almeida96.testledger.MainKt",
         "serve",
         "--db",
@@ -117,7 +123,7 @@ Use absolute paths because clients often start tools from a different directory.
 ```
 
 On Windows, use forward slashes in JSON paths, such as
-`C:/tools/testledger-0.2.0/lib/*`. The Java launcher expands the classpath wildcard;
+`C:/tools/testledger-0.3.0/lib/*`. The Java launcher expands the classpath wildcard;
 no shell wrapper is needed. Client configuration locations vary.
 
 | Tool | What the agent receives |
@@ -127,6 +133,7 @@ no shell wrapper is needed. Client configuration locations vary.
 | `failure_groups` | Shared failure signatures with up to three example evidence IDs |
 | `compare_runs` | Paginated changes between two chronological runs |
 | `test_history` | Recent observations, missing runs, and pass/fail transitions |
+| `test_stability` | Ranked intermittent outcomes and passed retries, with cited timelines and coverage counts |
 | `test_evidence` | One testcase's failure text, source report, XML line, and retry hints |
 | `performance_regressions` | Slower passed tests, baseline medians, coverage, and cited duration samples |
 
@@ -135,6 +142,12 @@ Select the **`triage-tests`** MCP prompt with a project and branch, or ask your 
 > Compare the latest two checkout runs on main. Inspect the new failures, check
 > whether they appeared in earlier runs, and cite the evidence. Separate facts
 > from hypotheses and list the next checks you would make.
+
+To discover tests worth investigating without knowing their IDs:
+
+> Scan the 20 runs ending at build-142 for intermittent outcomes and tests that
+> passed after retries. Include candidates missing from the head. Cite their
+> timelines and distinguish observed changes from possible causes.
 
 For a timing investigation:
 
@@ -171,7 +184,8 @@ failure. Keep separate project or branch labels for incompatible test environmen
 
 `test_history` marks a sequence as intermittent after at least two adjacent
 pass/fail transitions in the selected window. Missing and skipped observations
-break the sequence. Different commits, dependencies, or environments may explain
+break the sequence, and equal timestamps cannot establish a transition. Different
+commits, dependencies, or environments may explain
 the changes, so this signal is **not proof of a flaky test**.
 
 ## Reproduce the example
@@ -239,6 +253,8 @@ JUnit tests cover parser limits, external-entity rejection, credential redaction
 retries, immutable imports, branch isolation, pagination, comparisons, and history.
 Timing tests cover median baselines, threshold boundaries, exclusions, coverage,
 backfilled runs, pagination snapshots, and finite extreme durations.
+Stability tests cover discovery, retries, missing tests, timestamp ties, scope
+isolation, and every combination of four final outcomes or missing observations.
 Protocol tests launch the installed JVM distribution and use the official
 TypeScript MCP client. They also check UTF-8 on Windows and nonzero CLI exits.
 CI runs Java 21 on Linux and Windows. JaCoCo reports are available under

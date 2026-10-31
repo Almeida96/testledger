@@ -25,7 +25,7 @@ immutable import across the whole ledger, including its project and branch.
 SQLite uses foreign keys, WAL, and a five-second busy timeout. A second process
 can import a run while an MCP process reads existing runs. Query methods serialize
 access to their JDBC connection. Existing runs never change, so evidence IDs stay
-valid after further imports. There is no retention or delete command in 0.2.0.
+valid after further imports. There is no retention or delete command in 0.3.0.
 
 Timestamps are parsed as instants and stored with a fixed nine-digit fractional
 part in UTC. This makes SQL ordering consistent for whole seconds, fractions, and
@@ -77,6 +77,39 @@ analysis. Selection happens once per query, so concurrent imports cannot mix two
 baselines within a response. See [timing analysis](timing-analysis.md) for the
 coverage and exit-code contract.
 
+## Stability discovery
+
+The stability query anchors its window to one imported head. It selects that
+run plus up to 49 strictly older runs in the same project and branch, then scans
+the union of their test IDs. This includes tests that disappeared from the head.
+No table or schema version changes are required.
+
+SQLite window functions compare adjacent observations per test. A transition
+requires adjacent selected-run positions, strictly increasing timestamps, and
+two non-skipped outcomes with different pass/fail states. Checking the run
+positions prevents a missing observation from being mistaken for an adjacent
+result. Failure and error belong to the same failed state.
+
+Aggregation, ranking, and pagination happen inside SQLite. The JVM receives
+summary counts and at most 20 candidate rows, then loads only those candidates'
+outcomes, retry counts, names, and classes across the selected runs. It does not
+load historical failure text or create a history object for every test. SQLite
+still has to scan and sort the selected observations; query cost grows with the
+number of tests and runs. The 50-run bound limits that scope.
+
+The response includes chronological run metadata and a complete timeline for
+each candidate. Missing observations have null outcomes and no citation. A
+snapshot hash covers the run selection and policy. Passing it on later pages
+rejects a changed window after a relevant backfill. Importing newer runs does
+not shift an existing head's analysis.
+
+The individual `test_history` query also excludes transitions between equal
+timestamps. It continues to use the latest runs in a branch, while
+`test_stability` ends at the explicitly selected head. See the
+[stability guide](stability.md) for counts and ranking, and
+[SQLite's window function reference](https://www.sqlite.org/windowfunctions.html)
+for the underlying query operations.
+
 ## Agent interface
 
 Tools validate argument names, types, identifiers, pagination, and query bounds.
@@ -90,7 +123,7 @@ surface and reusable investigation prompt. A client may send returned evidence
 to its chosen model. No model response was used to validate this release.
 
 The independent protocol test seeds a real SQLite ledger, launches the packaged
-JVM server, negotiates MCP through the TypeScript SDK, calls all seven tools, gets
+JVM server, negotiates MCP through the TypeScript SDK, calls all eight tools, gets
 the prompt, and checks the expected observations. This verifies interoperability
 without assuming that a language model will always choose the right tools.
 
@@ -103,6 +136,9 @@ without assuming that a language model will always choose the right tools.
   their expected outcomes differ.
 - `intermittent` means at least two adjacent pass/fail changes in up to 50 recent
   runs. It is not a probabilistic flakiness score.
+- Stability discovery can raise the transition threshold, but it does not estimate
+  failure probability or infer that an unchanged commit implies an unchanged
+  environment. Retry signals depend on the runner recording retry elements.
 - Timing thresholds compare recorded testcase durations. Runner contention,
   retries not represented in XML, and environment changes can explain increases.
   The median reduces sensitivity to outliers but is not a significance test.

@@ -14,6 +14,8 @@ Parser changes need real XML fixtures, including a rejected malformed input. Kee
 
 History queries must state their run selection and return citations. A status change across runs is evidence for triage; it is not proof that a test is flaky. Keep that distinction in tool descriptions and reports.
 
+Stability discovery must include tests absent from the head. Verify gaps, skipped results, equal timestamps, retry recovery, and page totals. Keep candidate ranking deterministic and preserve snapshot checks when changing the query. The exhaustive four-run fixture checks all 625 combinations of pass, failure, error, skip, and absence.
+
 Tests and demos run offline with synthetic report data. Before adding fixtures, remove tokens, environment values and personal paths from failure messages. Redaction has limits; it does not make arbitrary CI logs safe to publish.
 
 Run the independent MCP client tests after changing tool schemas or response shapes. Document a database migration before changing persisted tables.

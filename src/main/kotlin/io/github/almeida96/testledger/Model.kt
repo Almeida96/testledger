@@ -5,7 +5,7 @@ import kotlinx.serialization.json.Json
 import java.security.MessageDigest
 import java.time.Instant
 
-const val VERSION = "0.2.0"
+const val VERSION = "0.3.0"
 val json = Json { prettyPrint = true; encodeDefaults = true; ignoreUnknownKeys = false }
 fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }

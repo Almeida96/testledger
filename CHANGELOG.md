@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-10-31
+
+- Add the `test_stability` MCP tool and `stability` CLI command to discover
+  intermittent outcomes and passes after retries across a branch's history.
+- Anchor discovery to an explicit head, include tests missing from that head,
+  and return ranked candidates with cited timelines and same-commit counts.
+- Return totals for the full window, short-history counts, and a snapshot guard
+  for pagination after historical imports. Aggregate and page inside SQLite.
+- Stop counting equal-timestamp observations as transitions in `test_history`.
+- Extend the offline MCP demo and documentation. Existing ledger schema 1 remains
+  compatible; no migration is required.
+
 ## 0.2.0 — 2026-10-30
 
 - Add `performance_regressions`, a read-only MCP tool that compares passed test

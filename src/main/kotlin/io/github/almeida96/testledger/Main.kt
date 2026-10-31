@@ -17,6 +17,8 @@ private val usage = """
     failures --run ID [--offset 0] [--limit 10]
     compare  --base ID --head ID [--offset 0] [--limit 50]
     history  --project NAME --branch NAME --test ID [--window 20]
+    stability --run ID [--window 20] [--min-transitions 2]
+              [--offset 0] [--limit 20] [--snapshot HASH]
     test     --run ID --test ID
     report   --base ID --head ID
     timings  --run ID [--window 10] [--min-samples 3] [--min-increase-ms 100]
@@ -46,6 +48,7 @@ fun execute(args: Array<String>): Int {
         "runs" to setOf("project", "branch", "offset", "limit"), "summary" to setOf("run"),
         "failures" to setOf("run", "offset", "limit"), "compare" to setOf("base", "head", "offset", "limit"),
         "history" to setOf("project", "branch", "test", "window"), "test" to setOf("run", "test"),
+        "stability" to setOf("run", "window", "min-transitions", "offset", "limit", "snapshot"),
         "report" to setOf("base", "head"), "serve" to emptySet(),
         "timings" to timingOptions, "timing-check" to timingOptions,
     )
@@ -74,6 +77,8 @@ fun execute(args: Array<String>): Int {
             "failures" -> println(json.encodeToString(ledger.failures(required("run"), int("offset", 0), int("limit", 10))))
             "compare" -> println(json.encodeToString(ledger.compare(required("base"), required("head"), int("offset", 0), int("limit", 50))))
             "history" -> println(json.encodeToString(ledger.history(required("project"), required("branch"), required("test"), int("window", 20))))
+            "stability" -> println(json.encodeToString(ledger.stability(required("run"), int("window", 20), int("min-transitions", 2),
+                int("offset", 0), int("limit", 20), values["snapshot"])))
             "test" -> println(json.encodeToString(ledger.test(required("run"), required("test"))))
             "report" -> println(markdownReport(ledger, required("base"), required("head")))
             "timings", "timing-check" -> {

@@ -17,7 +17,10 @@ try {
   await writeFile(resolve(directory, 'report.md'), await cli('report', '--base', 'run-3', '--head', 'run-4', '--db', db));
   const timings = await call(client, 'performance_regressions', { runId: 'timing-5' });
   await writeFile(resolve(directory, 'timings.json'), JSON.stringify(timings, null, 2) + '\n');
+  const stability = await call(client, 'test_stability', { runId: 'run-4' });
+  await writeFile(resolve(directory, 'stability.json'), JSON.stringify(stability, null, 2) + '\n');
   console.log(JSON.stringify({ changes: comparison.counts, failureGroups: groups.totalGroups, transitions: history.transitions,
     timingRegressions: timings.totalRegressions, timingCoverage: { evaluated: timings.evaluatedTests, insufficient: timings.insufficientSamples, ignored: timings.ignoredTests },
-    report: 'build/demo/report.md', evidence: 'build/demo/evidence.json', timings: 'build/demo/timings.json' }, null, 2));
+    stabilityCandidates: stability.totalCandidates, intermittentTests: stability.intermittentTests, retryRecoveryTests: stability.retryRecoveryTests,
+    report: 'build/demo/report.md', evidence: 'build/demo/evidence.json', timings: 'build/demo/timings.json', stability: 'build/demo/stability.json' }, null, 2));
 } finally { await client.close(); }

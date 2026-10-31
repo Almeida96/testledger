@@ -11,7 +11,7 @@ test('Kotlin server interoperates with an independent MCP client and returns cit
   try {
     await seed(db); client = await connect(db);
     const tools = (await client.listTools()).tools;
-    assert.equal(tools.length, 7); assert.ok(tools.every(t => t.annotations.readOnlyHint));
+    assert.equal(tools.length, 8); assert.ok(tools.every(t => t.annotations.readOnlyHint));
     const runs = await call(client, 'list_runs', { project: 'shop', branch: 'main', limit: 2 });
     assert.deepEqual(runs.runs.map(r => r.run.id), ['run-4', 'run-3']); assert.equal(runs.nextOffset, 2);
     const diff = await call(client, 'compare_runs', { baseId: 'run-3', headId: 'run-4' });

@@ -29,6 +29,12 @@ configuration, provided by the user through a separate authorized tool.
 The generated Markdown report is deterministic. It can be attached to a PR, but
 TestLedger does not post comments or open issues automatically.
 
+The demo also calls `test_stability` for `run-4` and writes
+`build/demo/stability.json`. Discovery finds `rejectsDuplicate` through three
+pass/fail transitions and `retriesDelivery` through a final pass after a retry.
+It reports three short histories across nine distinct tests. See the
+[stability guide](stability.md) for selection and signal rules.
+
 The same command imports five timing fixtures and calls `performance_regressions`.
 It writes the result to `build/demo/timings.json`. See
 [timing analysis](timing-analysis.md#reproduce-the-fixture) for expected values

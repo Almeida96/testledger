@@ -127,9 +127,10 @@ class Ledger(path: Path, private val writable: Boolean = false) : AutoCloseable 
         }
         val observed = items.count { it.outcome != null }
         require(observed > 0) { "Test is not present in the selected history window" }
-        // Missing and skipped cases break the sequence; neither is evidence of a successful run.
+        // Gaps and equal timestamps cannot establish a chronological pass/fail change.
         val transitions = items.zipWithNext().count { (a, b) ->
-            a.outcome != null && b.outcome != null && a.outcome != Outcome.SKIPPED && b.outcome != Outcome.SKIPPED && a.outcome.failed != b.outcome.failed
+            a.outcome != null && b.outcome != null && a.outcome != Outcome.SKIPPED && b.outcome != Outcome.SKIPPED &&
+                Instant.parse(a.run.at) < Instant.parse(b.run.at) && a.outcome.failed != b.outcome.failed
         }
         return TestHistory(testId, "$project / $branch", observed, items.size - observed, transitions, transitions >= 2,
             "Two or more adjacent pass/fail transitions indicate an intermittent outcome in this window. They do not establish flakiness or a root cause; commits and environments may differ.", items)
@@ -170,6 +171,16 @@ class Ledger(path: Path, private val writable: Boolean = false) : AutoCloseable 
         }
         return TimingPage(head.run, policy, baseline, selectedSnapshot, status, head.tests, eligible.size, evaluated,
             insufficient, head.tests - eligible.size, changes.size, rows, if (offset.toLong() + limit < changes.size) offset + limit else null)
+    }
+
+    @Synchronized fun stability(runId: String, window: Int = 20, minTransitions: Int = 2, offset: Int = 0, limit: Int = 20, snapshot: String? = null): StabilityPage {
+        require(window in 3..50) { "Stability window must be between 3 and 50 runs" }
+        require(minTransitions in 2 until window) { "minTransitions must be between 2 and window - 1" }
+        page(offset, limit, 20)
+        val head = run(runId)
+        val older = query("SELECT meta FROM runs WHERE project=? AND branch=? AND at<? ORDER BY at DESC, id DESC LIMIT ?",
+            head.project, head.branch, head.at, window - 1) { json.decodeFromString<RunMeta>(it.getString(1)) }
+        return StabilityQuery(connection).read(head, older.reversed() + head, window, minTransitions, offset, limit, snapshot)
     }
 
     private fun timingReadings(runId: String): List<TimingReading> = query(

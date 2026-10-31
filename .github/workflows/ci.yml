@@ -40,13 +40,14 @@ jobs:
             build/demo/report.md
             build/demo/evidence.json
             build/demo/timings.json
+            build/demo/stability.json
       - uses: actions/upload-artifact@v4
         with:
           name: distribution-${{ matrix.os }}
-          path: build/distributions/testledger-0.2.0.zip
+          path: build/distributions/testledger-0.3.0.zip
   release:
     needs: test
-    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release TestLedger 0.2.0')
+    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release TestLedger 0.3.0')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -61,5 +62,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd release
-          sha256sum testledger-0.2.0.zip > SHA256SUMS.txt
-          gh release create v0.2.0 testledger-0.2.0.zip SHA256SUMS.txt --target "$GITHUB_SHA" --title "TestLedger 0.2.0" --notes-file ../docs/releases/0.2.0.md
+          sha256sum testledger-0.3.0.zip > SHA256SUMS.txt
+          gh release create v0.3.0 testledger-0.3.0.zip SHA256SUMS.txt --target "$GITHUB_SHA" --title "TestLedger 0.3.0" --notes-file ../docs/releases/0.3.0.md

@@ -54,7 +54,7 @@ test('CI timing gate distinguishes regressions, clear results, insufficient samp
     await expectExit(1, null, '--run', 'timing-5', '--window', '2');
     const clear = JSON.parse(await cli('timing-check', '--run', 'timing-4', '--min-increase-ms', '100000', '--db', db));
     assert.equal(clear.status, 'CLEAR'); assert.equal(clear.evaluatedTests, 2);
-    assert.equal((await cli('--version')).trim(), '0.2.0');
+    assert.equal((await cli('--version')).trim(), '0.3.0');
   } finally { await rm(temp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
 });
 
